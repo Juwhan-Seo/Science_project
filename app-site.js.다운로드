@@ -1,0 +1,149 @@
+(function(d,w,script) {
+	document.addEventListener('DOMContentLoaded', function(){
+	    script = d.createElement('script');
+	    script.async = true;
+	    script.src = 'https://www.googletagmanager.com/gtag/js?id=G-QTM7WZSBCN&l=cp_dataLayer';
+	    script.onload = function(){
+
+	    		// 사이트 정보
+				const cp_site_domain = w.location.hostname;
+				const cp_querystring = w.location.search;
+				const cp_site_code = typeof(SITE_CODE) === 'undefined' ? '' : SITE_CODE;
+				const cp_unit_code = typeof(UNIT_CODE) === 'undefined' ? '' : UNIT_CODE;
+				const cp_memberhash = typeof(MEMBER_HASH) === 'undefined' ? '' : MEMBER_HASH;
+				const cp_is_app = typeof(IS_APP) === 'undefined' ? '' : IS_APP;
+				const cp_is_android = typeof(IS_ANDROID_APP) === 'undefined' ? '' : IS_ANDROID_APP;
+				const cp_is_ios = typeof(IS_IOS_APP) === 'undefined' ? '' : IS_IOS_APP;
+				const cp_useragent = navigator.userAgent.toLowerCase();
+				const getParams = new URLSearchParams(w.location.search);
+				const cp_utmSource = getParams.get('utm_source');
+				const cp_utmMedium = getParams.get('utm_medium');
+
+				// gtag 선언
+				w.cp_dataLayer = w.cp_dataLayer || [];
+				function cp_gtag(){cp_dataLayer.push(arguments);}
+				cp_gtag('js', new Date());
+
+				// CD
+				cp_gtag('set', 'user_properties', {
+			  		'site_domain': cp_site_domain,
+			  		'site_code': cp_site_code,
+			  		'unit_code': cp_unit_code,
+			  		'is_app': cp_is_app,
+			  		'is_android': cp_is_android,
+			  		'is_ios': cp_is_ios,
+			  		'user_agent': cp_useragent,
+			  		'member_id': cp_memberhash
+				});
+
+				// 채널그룹
+				if( getParams.get('n_keyword') && !cp_utmSource && !cp_utmMedium ){
+					cp_gtag('set', {
+					    'campaign_source': 'naver',
+					    'campaign_medium': 'cpc'
+					});
+				} else if( getParams.get('k_keyword') && !cp_utmSource && !cp_utmMedium ){
+					cp_gtag('set', {
+					  'campaign_source': 'kakao',
+					    'campaign_medium': 'cpc'
+					});
+				} else if( getParams.get('gclid') && !cp_utmSource && !cp_utmMedium ){
+					cp_gtag('set', {
+					    'campaign_source': 'google',
+					    'campaign_medium': 'cpc'
+					});
+				} else if( cp_useragent.match('.*kakaotalk.*') && !cp_utmSource && !cp_utmMedium ){
+					cp_gtag('set', {
+					    'campaign_source': 'kakaotalk',
+					    'campaign_medium': 'referral'
+					});
+				}
+
+				// User-ID
+				if( cp_memberhash != '' ){
+					cp_gtag('set', 'user_id', cp_memberhash);
+				}
+				cp_gtag('config', 'G-QTM7WZSBCN');
+
+				// GNB 클릭 추적
+				$('#doz_header a, #mobile_slide_menu a').click(function(){
+					if( !this.href.toLowerCase().trim().includes('javascript:') ){
+						const clickText = this.innerText ? this.innerText : this.alt ? this.alt : this.title ? this.title : this.querySelectorAll(':scope img')[0]?.alt ? this.querySelectorAll(':scope img')[0]?.alt : this.querySelectorAll(':scope img')[0]?.title ? this.querySelectorAll(':scope img')[0]?.title : this.href || '';
+
+						cp_gtag('event', 'click_header', {
+							'event_category': '상단메뉴 클릭',
+							'event_action': this.href || '',
+							'event_label': clickText.trim()
+						});
+					}
+				});
+
+				// 폼 제출 추적
+				// let observe_formSubmit = new IntersectionObserver((entries, observer) => {
+				// 	entries.forEach(entry => {
+				// 		if (entry.isIntersecting) {
+				// 			let form_id = entry.target.id.replace('input_form_complete_modal_','');
+				// 			let form_name = document.getElementById('addForm' + form_id).elements['board_name'].value;
+
+				// 			cp_gtag('event', 'form_submit', {
+				// 				'event_category': '입력폼 제출',
+				// 				'event_action': form_id,
+				// 				'event_label': form_name
+				// 			});
+				// 		}
+				// 	});
+				// }, {
+				// 	root: null,
+				// 	rootMargin: '0px',
+				// 	threshold: 0
+				// });
+				// document.querySelectorAll('div[id*="input_form_complete_modal"]').forEach((i) => {
+				//     if (i) {
+				//         observe_formSubmit.observe(i);
+				//     }
+				// });
+
+				$(d).ajaxComplete(function(event,xhr,settings){
+
+					// 폼 제출 추적
+					if( settings.url.includes('form_add.cm') && xhr.status == 200 ) {
+						const params = new URLSearchParams(settings.data);
+						const form_id = params.get('board_code');
+						const form_name = decodeURI( params.get('board_name') );	
+						cp_gtag('event', 'form_submit', {
+							'event_category': '입력폼 제출',
+							'event_action': form_id,
+							'event_label': form_name
+						});
+					}
+
+					// 회원가입 추적
+					if( settings.url.includes('join.cm') && xhr.status == 200 && settings.data.includes('mode=join') ) {
+						cp_gtag('event', 'sign_up');
+					}
+
+				});
+
+				// 게시물뷰 추적
+				if ( w.location.search.includes('idx=') && w.location.search.includes('bmode=view') ){
+					cp_gtag('event', 'view_post');	   
+				}
+
+				// 상품상세뷰 추적
+				if ( w.location.search.includes('idx=') && !w.location.search.includes('bmode=') ){
+					cp_gtag('event', 'view_item');	   
+				}
+
+				// 주문서작성 추적
+				if ( w.location.pathname.includes('/shop_payment/') ){
+					cp_gtag('event', 'begin_checkout');	   
+				}
+
+				// 주문완료 추적
+				if ( w.location.pathname.includes('/shop_payment_complete/') ){
+					cp_gtag('event', 'purchase');	   
+				}
+	    };
+	    d.getElementsByTagName('head')[0].appendChild(script);
+    });
+}(document,window));
